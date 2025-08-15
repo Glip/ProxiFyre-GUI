@@ -5,6 +5,11 @@ import os
 import subprocess
 import psutil
 from typing import List, Dict, Any
+import urllib.request
+import zipfile
+import tempfile
+import re
+import shutil
 
 class ConfigEditor:
     def __init__(self, root):
@@ -100,6 +105,7 @@ class ConfigEditor:
         
         ttk.Button(app_control_frame, text="Запустить приложение", command=self.run_proxifyre).grid(row=0, column=0, padx=(0, 10))
         ttk.Button(app_control_frame, text="Остановить приложение", command=self.stop_proxifyre).grid(row=0, column=1, padx=(0, 10))
+        ttk.Button(app_control_frame, text="Скачать ProxiFyre", command=self.download_proxifyre).grid(row=0, column=2, padx=(0, 10))
         
         # Кнопки для управления сервисом (требуют права администратора)
         service_control_frame = ttk.LabelFrame(main_frame, text="Управление сервисом (требует права администратора)", padding="10")
@@ -124,6 +130,7 @@ class ConfigEditor:
         main_frame.columnconfigure(1, weight=1)
         apps_frame.columnconfigure(0, weight=1)
         apps_frame.rowconfigure(0, weight=1)
+        app_control_frame.columnconfigure(2, weight=1)
     
     def load_current_config(self):
         """Загружает текущую конфигурацию в интерфейс"""
@@ -208,6 +215,57 @@ class ConfigEditor:
         # Сохраняем поддерживаемые протоколы если их нет
         if "supportedProtocols" not in proxy:
             proxy["supportedProtocols"] = ["TCP", "UDP"]
+    
+    def download_proxifyre(self):
+        """Скачивает последний релиз ProxiFyre с GitHub"""
+        try:
+            # Используем GitHub API для получения информации о последнем релизе
+            api_url = "https://api.github.com/repos/wiresock/proxifyre/releases/latest"
+            req = urllib.request.Request(api_url, headers={
+                'User-Agent': 'Mozilla/5.0',
+                'Accept': 'application/vnd.github.v3+json'
+            })
+            
+            with urllib.request.urlopen(req) as response:
+                release_data = json.loads(response.read().decode('utf-8'))
+            
+            # Ищем ссылку на архив в assets
+            zip_url = None
+            for asset in release_data.get('assets', []):
+                asset_name = asset.get('name', '')
+                if any(pattern in asset_name.lower() for pattern in ['x64-signed.zip', 'x86-signed.zip']):
+                    zip_url = asset.get('browser_download_url')
+                    break
+            
+            if not zip_url:
+                messagebox.showerror("Ошибка", f"Не удалось найти архив в релизе {release_data.get('tag_name', 'unknown')}")
+                return
+            
+            # Создаем временную папку для загрузки
+            with tempfile.TemporaryDirectory() as temp_dir:
+                zip_path = os.path.join(temp_dir, "proxifyre.zip")
+                
+                # Скачиваем архив
+                urllib.request.urlretrieve(zip_url, zip_path)
+                
+                # Разархивируем все файлы в текущую папку
+                with zipfile.ZipFile(zip_path, 'r') as zip_ref:
+                    zip_ref.extractall(".")
+                
+                # Проверяем, что файлы извлечены
+                extracted_files = []
+                for root, dirs, files in os.walk("."):
+                    for file in files:
+                        if file.endswith('.exe') or file.endswith('.dll') or file.endswith('.txt') or file.endswith('.md'):
+                            extracted_files.append(file)
+                
+                if extracted_files:
+                    messagebox.showinfo("Успех", f"Архив успешно распакован! Извлечено файлов: {len(extracted_files)}")
+                else:
+                    messagebox.showerror("Ошибка", "Не удалось распаковать архив")
+            
+        except Exception as e:
+            messagebox.showerror("Ошибка", f"Не удалось скачать ProxiFyre: {str(e)}")
     
     def run_proxifyre(self):
         """Запускает приложение ProxiFyre.exe"""
