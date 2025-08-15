@@ -1,6 +1,7 @@
 # ProxiFyre Config Editor
 
-Простое приложение для редактирования конфигурационного файла ProxiFyre.
+Простое приложение для редактирования конфигурационного файла ProxiFyre - https://github.com/wiresock/proxifyre.
+Почти полностью написано нейросетью.
 
 ## Возможности
 
@@ -98,33 +99,11 @@
 }
 ```
 
-## Структура проекта
-
-```
-ProxiFyre-gui/
-├── config_editor.py          # Основное приложение
-├── app-config.json          # Конфигурационный файл
-├── requirements.txt          # Зависимости Python
-├── build_exe.py             # Скрипт упаковки в exe
-├── run_editor.bat           # Запуск Python версии
-├── run_exe.bat              # Запуск exe версии
-├── build_exe.bat            # Упаковка в exe
-├── README.md                # Документация
-└── dist/                    # Папка с exe файлом
-    └── ProxiFyreConfigEditor.exe
-```
-
 ## Требования
 
 - Python 3.7+
 - tkinter (обычно входит в стандартную установку Python)
 - PyInstaller (для создания exe файла)
-
-## Поддерживаемые форматы файлов
-
-- `.exe` - исполняемые файлы Windows
-- `.bat` - batch файлы
-- Все остальные файлы (через "All files")
 
 ## Примечания
 
@@ -132,32 +111,3 @@ ProxiFyre-gui/
 - Пароль отображается звездочками для безопасности
 - Все изменения сохраняются в формате JSON с правильным форматированием
 - Поддерживаемые протоколы (TCP, UDP) сохраняются автоматически
-
-## Разработка
-
-### Git
-
-Проект готов к загрузке в git. Файл `.gitignore` настроен для исключения:
-- Временных файлов Python (`__pycache__/`, `*.pyc`)
-- Папок сборки PyInstaller (`build/`, `dist/`)
-- Временных файлов Windows
-- Файлов IDE
-
-### Структура для разработки
-
-```
-ProxiFyre-gui/
-├── config_editor.py          # Основное приложение
-├── app-config.json          # Конфигурационный файл (пример)
-├── requirements.txt          # Зависимости Python
-├── build_exe.py             # Скрипт упаковки в exe
-├── run_editor.bat           # Запуск Python версии
-├── run_exe.bat              # Запуск exe версии
-├── build_exe.bat            # Упаковка в exe
-├── README.md                # Документация
-├── .gitignore               # Исключения для git
-└── dist/                    # Папка с exe файлом (исключена из git)
-    └── ProxiFyreConfigEditor.exe
-```
-
-**Примечание**: Папка `dist/` и файлы сборки исключены из git, так как они генерируются автоматически.
