@@ -1,5 +1,5 @@
 @echo off
-echo Упаковка ProxiFyre Config Editor в exe файл...
+echo Упаковка ProxiFyre GUI by turn-guild.ru в exe файл...
 echo.
 python build_exe.py
 echo.

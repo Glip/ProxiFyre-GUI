@@ -9,7 +9,7 @@ from typing import List, Dict, Any
 class ConfigEditor:
     def __init__(self, root):
         self.root = root
-        self.root.title("ProxiFyre Config Editor")
+        self.root.title("ProxiFyre GUI by turn-guild.ru")
         self.root.geometry("800x600")
         
         self.config_file = "app-config.json"

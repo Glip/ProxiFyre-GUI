@@ -36,12 +36,12 @@ build_exe.bat
 ### Ручная сборка
 
 ```bash
-pyinstaller --onefile --windowed --name=ProxiFyreConfigEditor config_editor.py
+pyinstaller --onefile --windowed --name=ProxiFyreGUI config_editor.py
 ```
 
 ## Структура файлов после сборки
 
-После успешной сборки в папке `dist/` появится файл `ProxiFyreConfigEditor.exe`.
+После успешной сборки в папке `dist/` появится файл `ProxiFyreGUI.exe`.
 
 ## Запуск приложения
 
@@ -66,7 +66,7 @@ run_exe.bat
 Или запустите напрямую:
 
 ```bash
-dist\ProxiFyreConfigEditor.exe
+dist\ProxiFyreGUI.exe
 ```
 
 ## Требования к системе

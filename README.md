@@ -1,4 +1,4 @@
-# ProxiFyre Config Editor
+# ProxiFyre GUI by turn-guild.ru
 
 Простое приложение для редактирования конфигурационного файла ProxiFyre - https://github.com/wiresock/proxifyre.
 Почти полностью написано нейросетью.
