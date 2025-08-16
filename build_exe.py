@@ -13,7 +13,9 @@ def build_exe():
             "--onefile",  # Создать один exe файл
             "--windowed",  # Без консольного окна
             "--name=ProxiFyreGUI",  # Имя выходного файла
-            "--icon=NONE",  # Без иконки (можно добавить свою)
+            "--icon=NONE",
+            "--clean",
+            "--noupx",
             "config_editor.py"
         ]
         

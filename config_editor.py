@@ -69,17 +69,14 @@ class ConfigEditor:
         # Endpoint
         ttk.Label(proxy_frame, text="Socks5 Proxy Endpoint:").grid(row=0, column=0, sticky=tk.W, pady=2)
         self.endpoint_var = tk.StringVar()
-        ttk.Entry(proxy_frame, textvariable=self.endpoint_var, width=40).grid(row=0, column=1, sticky=(tk.W, tk.E), padx=(10, 0), pady=2)
         
         # Username
         ttk.Label(proxy_frame, text="Username:").grid(row=1, column=0, sticky=tk.W, pady=2)
         self.username_var = tk.StringVar()
-        ttk.Entry(proxy_frame, textvariable=self.username_var, width=40).grid(row=1, column=1, sticky=(tk.W, tk.E), padx=(10, 0), pady=2)
         
         # Password
         ttk.Label(proxy_frame, text="Password:").grid(row=2, column=0, sticky=tk.W, pady=2)
         self.password_var = tk.StringVar()
-        ttk.Entry(proxy_frame, textvariable=self.password_var, width=40, show="*").grid(row=2, column=1, sticky=(tk.W, tk.E), padx=(10, 0), pady=2)
         
         # Log Level
         ttk.Label(proxy_frame, text="Log Level:").grid(row=3, column=0, sticky=tk.W, pady=2)
@@ -131,6 +128,103 @@ class ConfigEditor:
         apps_frame.columnconfigure(0, weight=1)
         apps_frame.rowconfigure(0, weight=1)
         app_control_frame.columnconfigure(2, weight=1)
+        
+        # Создаем поля ввода с контекстным меню
+        self._create_entry_fields(proxy_frame)
+    
+    def _create_entry_fields(self, proxy_frame):
+        """Создает поля ввода с контекстным меню для копирования/вставки"""
+        # Endpoint
+        self.endpoint_entry = ttk.Entry(proxy_frame, textvariable=self.endpoint_var, width=40)
+        self.endpoint_entry.grid(row=0, column=1, sticky=(tk.W, tk.E), padx=(10, 0), pady=2)
+        self._setup_entry_context_menu(self.endpoint_entry)
+        
+        # Username
+        self.username_entry = ttk.Entry(proxy_frame, textvariable=self.username_var, width=40)
+        self.username_entry.grid(row=1, column=1, sticky=(tk.W, tk.E), padx=(10, 0), pady=2)
+        self._setup_entry_context_menu(self.username_entry)
+        
+        # Password
+        self.password_entry = ttk.Entry(proxy_frame, textvariable=self.password_var, width=40, show="*")
+        self.password_entry.grid(row=2, column=1, sticky=(tk.W, tk.E), padx=(10, 0), pady=2)
+        self._setup_entry_context_menu(self.password_entry)
+    
+    def _setup_entry_context_menu(self, entry_widget):
+        """Настраивает контекстное меню для поля ввода"""
+        context_menu = tk.Menu(entry_widget, tearoff=0)
+        context_menu.add_command(label="Копировать (Ctrl+C/С)", command=lambda: self._copy_text(entry_widget))
+        context_menu.add_command(label="Вставить (Ctrl+V/М)", command=lambda: self._paste_text(entry_widget))
+        context_menu.add_command(label="Вырезать (Ctrl+X/Ч)", command=lambda: self._cut_text(entry_widget))
+        context_menu.add_separator()
+        context_menu.add_command(label="Выбрать все (Ctrl+A/Ф)", command=lambda: self._select_all(entry_widget))
+        
+        # Привязываем правый клик к контекстному меню
+        entry_widget.bind("<Button-3>", lambda e: context_menu.post(e.x_root, e.y_root))
+        
+        # Привязываем горячие клавиши (работают независимо от раскладки)
+        entry_widget.bind("<Control-Insert>", lambda e: self._copy_text(entry_widget))  # Ctrl+Insert
+        entry_widget.bind("<Shift-Insert>", lambda e: self._paste_text(entry_widget))   # Shift+Insert
+        entry_widget.bind("<Shift-Delete>", lambda e: self._cut_text(entry_widget))    # Shift+Delete
+        entry_widget.bind("<Control-a>", lambda e: self._select_all(entry_widget))     # Ctrl+A
+        entry_widget.bind("<Control-A>", lambda e: self._select_all(entry_widget))     # Ctrl+A (Shift)
+        
+        # Альтернативные горячие клавиши (работают при любой раскладке)
+        # Используем KeyPress для перехвата нажатий клавиш
+        entry_widget.bind("<KeyPress>", self._handle_key_press)
+    
+    def _copy_text(self, entry_widget):
+        """Копирует выделенный текст"""
+        try:
+            selected_text = entry_widget.selection_get()
+            self.root.clipboard_clear()
+            self.root.clipboard_append(selected_text)
+        except tk.TclError:
+            pass  # Нет выделенного текста
+    
+    def _paste_text(self, entry_widget):
+        """Вставляет текст из буфера обмена"""
+        try:
+            clipboard_text = self.root.clipboard_get()
+            entry_widget.delete(0, tk.END)
+            entry_widget.insert(0, clipboard_text)
+        except tk.TclError:
+            pass  # Буфер обмена пуст
+    
+    def _cut_text(self, entry_widget):
+        """Вырезает выделенный текст"""
+        try:
+            selected_text = entry_widget.selection_get()
+            self.root.clipboard_clear()
+            self.root.clipboard_append(selected_text)
+            entry_widget.delete("sel.first", "sel.last")
+        except tk.TclError:
+            pass  # Нет выделенного текста
+    
+    def _select_all(self, entry_widget):
+        """Выбирает весь текст в поле"""
+        entry_widget.select_range(0, tk.END)
+        entry_widget.icursor(tk.END)
+    
+    def _handle_key_press(self, event):
+        """Обрабатывает нажатия клавиш для альтернативных горячих клавиш"""
+        # Проверяем, что нажат Ctrl
+        if event.state & 0x4:  # 0x4 = Control
+            # Используем keycode для определения клавиши (работает независимо от раскладки)
+            keycode = event.keycode
+            
+            # Определяем действие по коду клавиши
+            if keycode == 67:  # Клавиша C (английская) или С (русская)
+                self._copy_text(event.widget)
+                return "break"  # Предотвращаем стандартную обработку
+            elif keycode == 86:  # Клавиша V (английская) или М (русская)
+                self._paste_text(event.widget)
+                return "break"
+            elif keycode == 88:  # Клавиша X (английская) или Ч (русская)
+                self._cut_text(event.widget)
+                return "break"
+            elif keycode == 65:  # Клавиша A (английская) или Ф (русская)
+                self._select_all(event.widget)
+                return "break"
     
     def load_current_config(self):
         """Загружает текущую конфигурацию в интерфейс"""
