@@ -15,7 +15,7 @@ class ConfigEditor:
     def __init__(self, root):
         self.root = root
         self.root.title("ProxiFyre GUI by turn-guild.ru")
-        self.root.geometry("800x600")
+        self.root.geometry("1000x800")
         
         self.config_file = "app-config.json"
         self.config_data = self.load_config()
@@ -57,13 +57,43 @@ class ConfigEditor:
             messagebox.showerror("Ошибка", f"Не удалось сохранить конфигурацию: {str(e)}")
     
     def setup_ui(self):
-        """Настраивает пользовательский интерфейс"""
+        """Настраивает пользовательский интерфейс с вкладками"""
         # Основной фрейм
         main_frame = ttk.Frame(self.root, padding="10")
         main_frame.grid(row=0, column=0, sticky=(tk.W, tk.E, tk.N, tk.S))
         
+        # Создаем вкладки
+        notebook = ttk.Notebook(main_frame)
+        notebook.grid(row=0, column=0, sticky=(tk.W, tk.E, tk.N, tk.S), pady=(0, 10))
+        
+        # Вкладка "Основное"
+        main_tab = ttk.Frame(notebook, padding="10")
+        notebook.add(main_tab, text="Основное")
+        self._setup_main_tab(main_tab)
+        
+        # Вкладка "Сервис"
+        service_tab = ttk.Frame(notebook, padding="10")
+        notebook.add(service_tab, text="Сервис")
+        self._setup_service_tab(service_tab)
+        
+        # Кнопки действий (общие для всех вкладок)
+        actions_frame = ttk.Frame(main_frame)
+        actions_frame.grid(row=1, column=0, pady=(10, 0))
+        
+        ttk.Button(actions_frame, text="Сохранить", command=self.save_config).grid(row=0, column=0, padx=(0, 10))
+        ttk.Button(actions_frame, text="Обновить", command=self.load_current_config).grid(row=0, column=1, padx=(0, 10))
+        ttk.Button(actions_frame, text="Выход", command=self.root.quit).grid(row=0, column=2)
+        
+        # Настройка весов для растягивания
+        self.root.columnconfigure(0, weight=1)
+        self.root.rowconfigure(0, weight=1)
+        main_frame.columnconfigure(0, weight=1)
+        main_frame.rowconfigure(0, weight=1)
+    
+    def _setup_main_tab(self, parent):
+        """Настраивает вкладку 'Основное'"""
         # Настройки прокси
-        proxy_frame = ttk.LabelFrame(main_frame, text="Настройки прокси", padding="10")
+        proxy_frame = ttk.LabelFrame(parent, text="Настройки прокси", padding="10")
         proxy_frame.grid(row=0, column=0, columnspan=2, sticky=(tk.W, tk.E), pady=(0, 10))
         
         # Endpoint
@@ -85,7 +115,7 @@ class ConfigEditor:
         log_level_combo.grid(row=3, column=1, sticky=(tk.W, tk.E), padx=(10, 0), pady=2)
         
         # Приложения
-        apps_frame = ttk.LabelFrame(main_frame, text="Приложения", padding="10")
+        apps_frame = ttk.LabelFrame(parent, text="Приложения", padding="10")
         apps_frame.grid(row=1, column=0, columnspan=2, sticky=(tk.W, tk.E, tk.N, tk.S), pady=(0, 10))
         
         # Список приложений
@@ -97,40 +127,76 @@ class ConfigEditor:
         ttk.Button(apps_frame, text="Удалить приложение", command=self.remove_app).grid(row=1, column=1, sticky=tk.W)
         
         # Кнопки для управления приложением
-        app_control_frame = ttk.LabelFrame(main_frame, text="Управление приложением", padding="10")
+        app_control_frame = ttk.LabelFrame(parent, text="Управление приложением", padding="10")
         app_control_frame.grid(row=2, column=0, columnspan=2, sticky=(tk.W, tk.E), pady=(0, 10))
         
         ttk.Button(app_control_frame, text="Запустить приложение", command=self.run_proxifyre).grid(row=0, column=0, padx=(0, 10))
         ttk.Button(app_control_frame, text="Остановить приложение", command=self.stop_proxifyre).grid(row=0, column=1, padx=(0, 10))
         ttk.Button(app_control_frame, text="Скачать ProxiFyre", command=self.download_proxifyre).grid(row=0, column=2, padx=(0, 10))
         
-        # Кнопки для управления сервисом (требуют права администратора)
-        service_control_frame = ttk.LabelFrame(main_frame, text="Управление сервисом (требует права администратора)", padding="10")
-        service_control_frame.grid(row=3, column=0, columnspan=2, sticky=(tk.W, tk.E), pady=(0, 10))
+        # Встроенная консоль
+        console_frame = ttk.LabelFrame(parent, text="Консоль ProxiFyre", padding="10")
+        console_frame.grid(row=3, column=0, columnspan=2, sticky=(tk.W, tk.E, tk.N, tk.S), pady=(0, 10))
         
-        ttk.Button(service_control_frame, text="Установить как сервис", command=self.install_service).grid(row=0, column=0, padx=(0, 10))
-        ttk.Button(service_control_frame, text="Запустить", command=self.start_service).grid(row=0, column=1, padx=(0, 10))
-        ttk.Button(service_control_frame, text="Остановить", command=self.stop_service).grid(row=0, column=2, padx=(0, 10))
-        ttk.Button(service_control_frame, text="Удалить сервис", command=self.uninstall_service).grid(row=0, column=3, padx=(0, 10))
+        # Консоль с прокруткой
+        self.console_text = tk.Text(console_frame, height=12, width=80, bg='black', fg='white', font=('Consolas', 9))
+        console_scrollbar = ttk.Scrollbar(console_frame, orient="vertical", command=self.console_text.yview)
+        self.console_text.configure(yscrollcommand=console_scrollbar.set)
         
-        # Кнопки действий
-        actions_frame = ttk.Frame(main_frame)
-        actions_frame.grid(row=4, column=0, columnspan=2, pady=(10, 0))
+        self.console_text.grid(row=0, column=0, sticky=(tk.W, tk.E, tk.N, tk.S))
+        console_scrollbar.grid(row=0, column=1, sticky=(tk.N, tk.S))
         
-        ttk.Button(actions_frame, text="Сохранить", command=self.save_config).grid(row=0, column=0, padx=(0, 10))
-        ttk.Button(actions_frame, text="Обновить", command=self.load_current_config).grid(row=0, column=1, padx=(0, 10))
-        ttk.Button(actions_frame, text="Выход", command=self.root.quit).grid(row=0, column=2)
+        # Кнопки управления консолью
+        console_buttons_frame = ttk.Frame(console_frame)
+        console_buttons_frame.grid(row=1, column=0, columnspan=2, pady=(10, 0))
+        
+        ttk.Button(console_buttons_frame, text="Очистить консоль", command=self.clear_console).grid(row=0, column=0, padx=(0, 10))
+        ttk.Button(console_buttons_frame, text="Копировать вывод", command=self.copy_console_output).grid(row=0, column=1, padx=(0, 10))
         
         # Настройка весов для растягивания
-        self.root.columnconfigure(0, weight=1)
-        self.root.rowconfigure(0, weight=1)
-        main_frame.columnconfigure(1, weight=1)
+        parent.columnconfigure(1, weight=1)
         apps_frame.columnconfigure(0, weight=1)
         apps_frame.rowconfigure(0, weight=1)
         app_control_frame.columnconfigure(2, weight=1)
+        console_frame.columnconfigure(0, weight=1)
+        console_frame.rowconfigure(0, weight=1)
         
         # Создаем поля ввода с контекстным меню
         self._create_entry_fields(proxy_frame)
+    
+    def _setup_service_tab(self, parent):
+        """Настраивает вкладку 'Сервис'"""
+        # Информация о сервисе
+        info_frame = ttk.LabelFrame(parent, text="Информация о сервисе", padding="10")
+        info_frame.grid(row=0, column=0, columnspan=2, sticky=(tk.W, tk.E), pady=(0, 20))
+        
+        ttk.Label(info_frame, text="Эта вкладка содержит функции для управления ProxiFyre как системным сервисом Windows.").grid(row=0, column=0, columnspan=2, sticky=tk.W, pady=5)
+        ttk.Label(info_frame, text="Все операции требуют прав администратора.", foreground="red").grid(row=1, column=0, columnspan=2, sticky=tk.W, pady=5)
+        
+        # Кнопки для управления сервисом
+        service_control_frame = ttk.LabelFrame(parent, text="Управление сервисом", padding="10")
+        service_control_frame.grid(row=1, column=0, columnspan=2, sticky=(tk.W, tk.E), pady=(0, 20))
+        
+        # Первый ряд кнопок
+        ttk.Button(service_control_frame, text="Установить как сервис", command=self.install_service).grid(row=0, column=0, padx=(0, 10), pady=(0, 10))
+        ttk.Button(service_control_frame, text="Удалить сервис", command=self.uninstall_service).grid(row=0, column=1, padx=(0, 10), pady=(0, 10))
+        
+        # Второй ряд кнопок
+        ttk.Button(service_control_frame, text="Запустить сервис", command=self.start_service).grid(row=1, column=0, padx=(0, 10))
+        ttk.Button(service_control_frame, text="Остановить сервис", command=self.stop_service).grid(row=1, column=1, padx=(0, 10))
+        
+        # Статус сервиса
+        status_frame = ttk.LabelFrame(parent, text="Статус сервиса", padding="10")
+        status_frame.grid(row=2, column=0, columnspan=2, sticky=(tk.W, tk.E), pady=(0, 20))
+        
+        self.service_status_label = ttk.Label(status_frame, text="Статус: Неизвестно")
+        self.service_status_label.grid(row=0, column=0, sticky=tk.W, pady=5)
+        
+        ttk.Button(status_frame, text="Обновить статус", command=self.refresh_service_status).grid(row=1, column=0, sticky=tk.W, pady=5)
+        
+        # Настройка весов
+        parent.columnconfigure(1, weight=1)
+        service_control_frame.columnconfigure(1, weight=1)
     
     def _create_entry_fields(self, proxy_frame):
         """Создает поля ввода с контекстным меню для копирования/вставки"""
@@ -172,6 +238,27 @@ class ConfigEditor:
         # Используем KeyPress для перехвата нажатий клавиш
         entry_widget.bind("<KeyPress>", self._handle_key_press)
     
+    def _handle_key_press(self, event):
+        """Обрабатывает нажатия клавиш для альтернативных горячих клавиш"""
+        # Проверяем, что нажат Ctrl
+        if event.state & 0x4:  # 0x4 = Control
+            # Используем keycode для определения клавиши (работает независимо от раскладки)
+            keycode = event.keycode
+            
+            # Определяем действие по коду клавиши
+            if keycode == 67:  # Клавиша C (английская) или С (русская)
+                self._copy_text(event.widget)
+                return "break"  # Предотвращаем стандартную обработку
+            elif keycode == 86:  # Клавиша V (английская) или М (русская)
+                self._paste_text(event.widget)
+                return "break"
+            elif keycode == 88:  # Клавиша X (английская) или Ч (русская)
+                self._cut_text(event.widget)
+                return "break"
+            elif keycode == 65:  # Клавиша A (английская) или Ф (русская)
+                self._select_all(event.widget)
+                return "break"
+    
     def _copy_text(self, entry_widget):
         """Копирует выделенный текст"""
         try:
@@ -205,26 +292,25 @@ class ConfigEditor:
         entry_widget.select_range(0, tk.END)
         entry_widget.icursor(tk.END)
     
-    def _handle_key_press(self, event):
-        """Обрабатывает нажатия клавиш для альтернативных горячих клавиш"""
-        # Проверяем, что нажат Ctrl
-        if event.state & 0x4:  # 0x4 = Control
-            # Используем keycode для определения клавиши (работает независимо от раскладки)
-            keycode = event.keycode
+    def refresh_service_status(self):
+        """Обновляет статус сервиса"""
+        try:
+            # Проверяем статус сервиса через sc query
+            result = subprocess.run(["sc", "query", "ProxiFyre"], 
+                                  capture_output=True, text=True, 
+                                  creationflags=subprocess.CREATE_NO_WINDOW)
             
-            # Определяем действие по коду клавиши
-            if keycode == 67:  # Клавиша C (английская) или С (русская)
-                self._copy_text(event.widget)
-                return "break"  # Предотвращаем стандартную обработку
-            elif keycode == 86:  # Клавиша V (английская) или М (русская)
-                self._paste_text(event.widget)
-                return "break"
-            elif keycode == 88:  # Клавиша X (английская) или Ч (русская)
-                self._cut_text(event.widget)
-                return "break"
-            elif keycode == 65:  # Клавиша A (английская) или Ф (русская)
-                self._select_all(event.widget)
-                return "break"
+            if result.returncode == 0:
+                if "RUNNING" in result.stdout:
+                    self.service_status_label.config(text="Статус: Запущен", foreground="green")
+                elif "STOPPED" in result.stdout:
+                    self.service_status_label.config(text="Статус: Остановлен", foreground="red")
+                else:
+                    self.service_status_label.config(text="Статус: Неизвестно", foreground="orange")
+            else:
+                self.service_status_label.config(text="Статус: Сервис не найден", foreground="gray")
+        except Exception as e:
+            self.service_status_label.config(text=f"Статус: Ошибка - {str(e)}", foreground="red")
     
     def load_current_config(self):
         """Загружает текущую конфигурацию в интерфейс"""
@@ -362,28 +448,90 @@ class ConfigEditor:
             messagebox.showerror("Ошибка", f"Не удалось скачать ProxiFyre: {str(e)}")
     
     def run_proxifyre(self):
-        """Запускает приложение ProxiFyre.exe"""
+        """Запускает приложение ProxiFyre.exe во встроенной консоли"""
         try:
             if os.path.exists("ProxiFyre.exe"):
-                subprocess.Popen(["ProxiFyre.exe"], creationflags=subprocess.CREATE_NEW_CONSOLE)
-                messagebox.showinfo("Успех", "ProxiFyre запущен!")
+                # Очищаем консоль перед запуском
+                self.clear_console()
+                self.log_to_console("🚀 Запуск ProxiFyre...\n")
+                
+                # Запускаем процесс без отдельного окна
+                self.proxifyre_process = subprocess.Popen(
+                    ["ProxiFyre.exe"], 
+                    stdout=subprocess.PIPE, 
+                    stderr=subprocess.STDOUT,
+                    text=True,
+                    bufsize=1,
+                    universal_newlines=True,
+                    creationflags=subprocess.CREATE_NO_WINDOW
+                )
+                
+                # Запускаем поток для чтения вывода
+                import threading
+                self.output_thread = threading.Thread(target=self._read_process_output, daemon=True)
+                self.output_thread.start()
+                
+                self.log_to_console("✅ ProxiFyre запущен во встроенной консоли!\n")
             else:
-                messagebox.showerror("Ошибка", "Файл ProxiFyre.exe не найден в текущей папке!")
+                self.log_to_console("❌ Ошибка: Файл ProxiFyre.exe не найден в текущей папке!\n")
         except Exception as e:
-            messagebox.showerror("Ошибка", f"Не удалось запустить ProxiFyre: {str(e)}")
+            self.log_to_console(f"❌ Ошибка запуска: {str(e)}\n")
+    
+    def _read_process_output(self):
+        """Читает вывод процесса и отображает в консоли"""
+        try:
+            while self.proxifyre_process and self.proxifyre_process.poll() is None:
+                line = self.proxifyre_process.stdout.readline()
+                if line:
+                    self.log_to_console(line)
+                else:
+                    break
+        except Exception as e:
+            self.log_to_console(f"❌ Ошибка чтения вывода: {str(e)}\n")
+    
+    def log_to_console(self, message):
+        """Добавляет сообщение в консоль"""
+        try:
+            self.console_text.insert(tk.END, message)
+            self.console_text.see(tk.END)  # Прокручиваем к концу
+            self.root.update_idletasks()  # Обновляем GUI
+        except Exception as e:
+            print(f"Ошибка записи в консоль: {e}")
+    
+    def clear_console(self):
+        """Очищает консоль"""
+        self.console_text.delete(1.0, tk.END)
+    
+    def copy_console_output(self):
+        """Копирует содержимое консоли в буфер обмена"""
+        try:
+            content = self.console_text.get(1.0, tk.END)
+            self.root.clipboard_clear()
+            self.root.clipboard_append(content)
+            messagebox.showinfo("Успех", "Содержимое консоли скопировано в буфер обмена!")
+        except Exception as e:
+            messagebox.showerror("Ошибка", f"Не удалось скопировать: {str(e)}")
     
     def stop_proxifyre(self):
         """Останавливает приложение ProxiFyre.exe"""
         try:
-            for proc in psutil.process_iter(['pid', 'name']):
-                if proc.info['name'] == 'ProxiFyre.exe':
-                    proc.terminate()
-                    messagebox.showinfo("Успех", "ProxiFyre остановлен!")
-                    return
-            
-            messagebox.showinfo("Информация", "ProxiFyre не запущен")
+            if hasattr(self, 'proxifyre_process') and self.proxifyre_process:
+                if self.proxifyre_process.poll() is None:  # Процесс еще запущен
+                    self.proxifyre_process.terminate()
+                    self.log_to_console("🛑 ProxiFyre остановлен!\n")
+                else:
+                    self.log_to_console("ℹ️ ProxiFyre уже не запущен\n")
+            else:
+                # Пытаемся найти и остановить процесс через psutil
+                for proc in psutil.process_iter(['pid', 'name']):
+                    if proc.info['name'] == 'ProxiFyre.exe':
+                        proc.terminate()
+                        self.log_to_console("🛑 ProxiFyre остановлен через psutil!\n")
+                        return
+                
+                self.log_to_console("ℹ️ ProxiFyre не запущен\n")
         except Exception as e:
-            messagebox.showerror("Ошибка", f"Не удалось остановить ProxiFyre: {str(e)}")
+            self.log_to_console(f"❌ Ошибка остановки: {str(e)}\n")
     
     def install_service(self):
         """Устанавливает ProxiFyre как сервис"""
